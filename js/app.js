@@ -40,10 +40,7 @@ function appInit() {
     .then(function(allData) {
       console.log('[APP] Data dimuat:', allData.length, 'records.');
 
-      /* 1. Init peta */
-      MapService.init('map');
-
-      /* 2. Isi dropdown */
+      /* 1. Isi dropdown */
       appFillSelect('filter-cohort',    DataService.getUniqueValues('cohort').map(String));
       appFillSelect('filter-province',  DataService.getUniqueValues('province'));
       appFillSelect('filter-regency',   DataService.getUniqueValues('regency'));
@@ -60,11 +57,14 @@ function appInit() {
       FilterService.init(function() { appUpdate(); });
       FilterService.bindDOM();
 
-      /* 4. *** NAVIGASI DULU *** supaya #page-overview display:block */
+      /* 4. NAVIGASI DULU → #page-overview display:block */
       appInitSidebar();
       appInitNav();
 
-      /* 5. Render SETELAH halaman sudah visible */
+      /* 5. Init peta SETELAH halaman visible (container bukan lagi display:none) */
+      MapService.init('map');
+
+      /* 6. Render pertama */
       appUpdate();
 
       /* 6. Event tambahan */
@@ -74,6 +74,13 @@ function appInit() {
       window.addEventListener('resize', function() {
         clearTimeout(window._resizeTimer);
         window._resizeTimer = setTimeout(function() { ChartService.resizeAll(); }, 250);
+      });
+
+      /* Mode peta berubah → re-render dengan data terfilter saat ini */
+      document.addEventListener('map-mode-changed', function() {
+        var all      = DataService.getAll();
+        var filtered = FilterService.apply(all);
+        MapService.render(filtered);
       });
 
       var ts = document.getElementById('last-update');
