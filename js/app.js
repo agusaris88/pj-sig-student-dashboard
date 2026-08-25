@@ -78,14 +78,13 @@ function appInit() {
       FilterService.init(function() { appUpdate(); });
       FilterService.bindDOM();
 
-      /* Render pertama */
-      appUpdate();
-
-      /* Sidebar */
+      /* Navigasi DULU — supaya #page-overview sudah display:block */
+      /* sebelum peta dan chart dirender (width=0 menyebabkan crash) */
       appInitSidebar();
-
-      /* Navigasi */
       appInitNav();
+
+      /* Render pertama — setelah halaman overview sudah visible */
+      appUpdate();
 
       /* Reset peta */
       var rb = document.getElementById('btn-reset-view');
@@ -117,20 +116,15 @@ function appInit() {
    UPDATE — dipanggil setiap kali filter berubah
 ════════════════════════════════════════════════════════════ */
 
-// Simpan data terakhir untuk re-render saat pindah halaman
-var _lastFiltered = [];
-var _lastAll = [];
-
 function appUpdate() {
-  _lastAll      = DataService.getAll();
-  _lastFiltered = FilterService.apply(_lastAll);
+  var all      = DataService.getAll();
+  var filtered = FilterService.apply(all);
 
-  appRenderKPI(_lastFiltered);
-  MapService.render(_lastFiltered);
-  // Render hanya chart yang VISIBLE (halaman Overview aktif)
-  ChartService.renderAll(_lastFiltered);
-  appRenderInsight(_lastFiltered);
-  appRenderCohortStats(_lastAll);
+  appRenderKPI(filtered);
+  MapService.render(filtered);
+  ChartService.renderAll(filtered);
+  appRenderInsight(filtered);
+  appRenderCohortStats(all);
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -195,8 +189,8 @@ function appRenderCohortStats(all) {
            '<div class="cohort-stat-label">'+active+' aktif &middot; '+Object.keys(pset).length+' provinsi</div></div>';
   }).join('');
 
-  // Chart cohort dirender saat user navigasi ke halaman Cohort
-  // (lihat appInitNav) — tidak dirender di sini agar tidak error width=0
+  /* chart perbandingan cohort */
+  ChartService.renderCohortCharts(all);
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -241,22 +235,7 @@ function appInitNav() {
   function go(pid) {
     pages.forEach(function(p){ p.classList.toggle('active', p.id==='page-'+pid); });
     links.forEach(function(l){ l.classList.toggle('active', l.dataset.page===pid); });
-
-    // Render chart halaman yang baru aktif (container sudah visible sekarang)
-    setTimeout(function() {
-      ChartService.resizeAll();
-      if (pid === 'spatial' && _lastFiltered.length) {
-        ChartService.renderSpatialCharts(_lastFiltered);
-      }
-      if (pid === 'profile' && _lastFiltered.length) {
-        ChartService.renderProfileCharts(_lastFiltered);
-      }
-      if (pid === 'cohort' && _lastAll.length) {
-        ChartService.renderCohortCharts(_lastAll);
-        appRenderCohortStats(_lastAll);
-      }
-    }, 80); // tunggu CSS transition selesai dulu
-
+    setTimeout(function(){ ChartService.resizeAll(); }, 120);
     var ct = document.getElementById('content');
     if (ct) ct.scrollTo({top:0, behavior:'smooth'});
   }
