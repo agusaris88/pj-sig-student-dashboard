@@ -3,18 +3,16 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="PJ-SIG Student Spatial Dashboard — Spatial Intelligence for Student Profile, Academic Planning & Decision Support"/>
   <title>PJ-SIG Student Spatial Dashboard</title>
 
-  <!-- Google Fonts: Inter -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-
-  <!-- Leaflet MarkerCluster CSS -->
+  <!-- MarkerCluster CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 
@@ -23,68 +21,48 @@
 </head>
 <body>
 
-<!-- ── Loading Overlay ──────────────────────────────────── -->
-<div id="loading-overlay" role="status" aria-live="polite">
-  <div class="spinner" aria-hidden="true"></div>
-  <p class="loading-text">Memuat data dashboard…</p>
+<!-- Loading Overlay -->
+<div id="loading-overlay" style="position:fixed;inset:0;background:#020817;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:9999;">
+  <div style="width:36px;height:36px;border:3px solid #334155;border-top-color:#14b8a6;border-radius:50%;animation:spin .8s linear infinite;"></div>
+  <p style="font-family:Inter,sans-serif;font-size:13px;color:#94a3b8;">Memuat data dashboard…</p>
 </div>
 
-<!-- ── Error Overlay ────────────────────────────────────── -->
-<div id="error-overlay" style="display:none" role="alert">
-  <span class="error-icon" aria-hidden="true">⚠️</span>
-  <p class="error-title">Gagal Memuat Data</p>
-  <p id="error-message">Pastikan file students.json tersedia.</p>
+<!-- Error Overlay -->
+<div id="error-overlay" style="position:fixed;inset:0;background:#020817;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:9999;">
+  <span style="font-size:32px;">⚠️</span>
+  <p style="font-family:Inter,sans-serif;font-size:16px;font-weight:600;color:#e2e8f0;">Gagal Memuat Data</p>
+  <p id="error-message" style="font-family:Inter,sans-serif;font-size:12px;color:#64748b;max-width:400px;text-align:center;padding:0 20px;">Terjadi kesalahan.</p>
+  <button onclick="location.reload()" style="margin-top:8px;background:none;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:12px;padding:8px 16px;cursor:pointer;">↺ Coba Lagi</button>
 </div>
 
-<!-- ── App Shell ────────────────────────────────────────── -->
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- App Shell -->
 <div id="app">
-
   <!-- SIDEBAR -->
   <aside id="sidebar" role="navigation" aria-label="Navigasi utama">
     <div class="sidebar-brand">
       <span class="brand-name">PJ-SIG</span>
       <span class="brand-sub">Student Spatial Dashboard</span>
     </div>
-
     <nav class="sidebar-nav">
       <span class="nav-section-label">Dashboard</span>
-
-      <a class="nav-link" data-page="overview" href="#" role="button" aria-label="Overview">
-        <span class="nav-icon" aria-hidden="true">🗺️</span>
-        <span class="nav-text">Overview</span>
-      </a>
-      <a class="nav-link" data-page="spatial" href="#" role="button" aria-label="Spatial Distribution">
-        <span class="nav-icon" aria-hidden="true">📍</span>
-        <span class="nav-text">Spatial Distribution</span>
-      </a>
-      <a class="nav-link" data-page="profile" href="#" role="button" aria-label="Student Profile">
-        <span class="nav-icon" aria-hidden="true">👥</span>
-        <span class="nav-text">Student Profile</span>
-      </a>
-      <a class="nav-link" data-page="cohort" href="#" role="button" aria-label="Cohort Comparison">
-        <span class="nav-icon" aria-hidden="true">📊</span>
-        <span class="nav-text">Cohort Comparison</span>
-      </a>
-
+      <a class="nav-link" data-page="overview" href="#"><span class="nav-icon">🗺️</span><span class="nav-text">Overview</span></a>
+      <a class="nav-link" data-page="spatial"  href="#"><span class="nav-icon">📍</span><span class="nav-text">Spatial Distribution</span></a>
+      <a class="nav-link" data-page="profile"  href="#"><span class="nav-icon">👥</span><span class="nav-text">Student Profile</span></a>
+      <a class="nav-link" data-page="cohort"   href="#"><span class="nav-icon">📊</span><span class="nav-text">Cohort Comparison</span></a>
       <span class="nav-section-label">Informasi</span>
-      <a class="nav-link" data-page="about" href="#" role="button" aria-label="About">
-        <span class="nav-icon" aria-hidden="true">ℹ️</span>
-        <span class="nav-text">About</span>
-      </a>
+      <a class="nav-link" data-page="about"    href="#"><span class="nav-icon">ℹ️</span><span class="nav-text">About</span></a>
     </nav>
-
     <div class="sidebar-footer">
-      <button id="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true" title="Sembunyikan/tampilkan sidebar">
-        ◀
-      </button>
+      <button id="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">◀</button>
     </div>
   </aside>
 
   <!-- MAIN -->
   <div id="main">
-
     <!-- TOPBAR -->
-    <header id="topbar" role="banner">
+    <header id="topbar">
       <div>
         <div class="topbar-title">PJ-SIG Student Spatial Dashboard</div>
         <div class="topbar-subtitle">Spatial Intelligence for Student Profile, Academic Planning &amp; Decision Support</div>
@@ -97,361 +75,144 @@
     </header>
 
     <!-- FILTER BAR -->
-    <div id="filterbar" role="search" aria-label="Filter data mahasiswa">
+    <div id="filterbar">
       <span class="filter-label">Filter:</span>
-
-      <select id="filter-cohort" class="filter-select" aria-label="Filter angkatan">
-        <option value="all">Semua Angkatan</option>
-      </select>
-
-      <select id="filter-province" class="filter-select" aria-label="Filter provinsi">
-        <option value="all">Semua Provinsi</option>
-      </select>
-
-      <select id="filter-regency" class="filter-select" aria-label="Filter kabupaten/kota">
-        <option value="all">Semua Kab/Kota</option>
-      </select>
-
-      <select id="filter-gender" class="filter-select" aria-label="Filter gender">
-        <option value="all">Semua Gender</option>
-      </select>
-
-      <select id="filter-admission" class="filter-select" aria-label="Filter jalur masuk">
-        <option value="all">Semua Jalur Masuk</option>
-      </select>
-
-      <div class="filter-sep" aria-hidden="true"></div>
-
-      <button id="btn-reset-filter" title="Reset semua filter">↺ Reset</button>
+      <select id="filter-cohort"   class="filter-select"><option value="all">Semua Angkatan</option></select>
+      <select id="filter-province" class="filter-select"><option value="all">Semua Provinsi</option></select>
+      <select id="filter-regency"  class="filter-select"><option value="all">Semua Kab/Kota</option></select>
+      <select id="filter-gender"   class="filter-select"><option value="all">Semua Gender</option></select>
+      <select id="filter-admission" class="filter-select"><option value="all">Semua Jalur Masuk</option></select>
+      <div class="filter-sep"></div>
+      <button id="btn-reset-filter">↺ Reset</button>
     </div>
 
     <!-- CONTENT -->
-    <main id="content" role="main">
+    <main id="content">
 
-      <!-- ═══════════════════════════════════════════════════════
-           PAGE 1 — OVERVIEW
-      ═══════════════════════════════════════════════════════ -->
-      <section id="page-overview" class="page" aria-label="Overview">
-
-        <!-- KPI Cards -->
+      <!-- PAGE: OVERVIEW -->
+      <section id="page-overview" class="page">
         <div class="section-header">
           <span class="section-title">Key Metrics</span>
           <span class="section-desc">Ringkasan data berdasarkan filter aktif</span>
         </div>
-
-        <div class="kpi-grid" role="list" aria-label="Indikator utama">
-          <div class="kpi-card" role="listitem" style="--accent-color: var(--teal-500)">
-            <span class="kpi-icon" aria-hidden="true">👨‍🎓</span>
-            <span class="kpi-value" id="kpi-total">—</span>
-            <span class="kpi-label">Total Mahasiswa</span>
-          </div>
-          <div class="kpi-card" role="listitem" style="--accent-color: var(--sky-500)">
-            <span class="kpi-icon" aria-hidden="true">✅</span>
-            <span class="kpi-value" id="kpi-active">—</span>
-            <span class="kpi-label">Mahasiswa Aktif</span>
-          </div>
-          <div class="kpi-card" role="listitem" style="--accent-color: var(--indigo-400)">
-            <span class="kpi-icon" aria-hidden="true">🎓</span>
-            <span class="kpi-value" id="kpi-cohorts">—</span>
-            <span class="kpi-label">Angkatan</span>
-          </div>
-          <div class="kpi-card" role="listitem" style="--accent-color: var(--amber-400)">
-            <span class="kpi-icon" aria-hidden="true">🗺️</span>
-            <span class="kpi-value" id="kpi-provinces">—</span>
-            <span class="kpi-label">Provinsi</span>
-          </div>
-          <div class="kpi-card" role="listitem" style="--accent-color: var(--rose-400)">
-            <span class="kpi-icon" aria-hidden="true">📍</span>
-            <span class="kpi-value" id="kpi-regencies">—</span>
-            <span class="kpi-label">Kab / Kota</span>
-          </div>
-          <div class="kpi-card" role="listitem" style="--accent-color: var(--slate-200)">
-            <span class="kpi-icon" aria-hidden="true">🏫</span>
-            <span class="kpi-value" id="kpi-schools">—</span>
-            <span class="kpi-label">Sekolah Asal</span>
-          </div>
+        <div class="kpi-grid">
+          <div class="kpi-card" style="--accent-color:var(--teal-500)"><span class="kpi-icon">👨‍🎓</span><span class="kpi-value" id="kpi-total">—</span><span class="kpi-label">Total Mahasiswa</span></div>
+          <div class="kpi-card" style="--accent-color:var(--sky-500)"><span class="kpi-icon">✅</span><span class="kpi-value" id="kpi-active">—</span><span class="kpi-label">Mahasiswa Aktif</span></div>
+          <div class="kpi-card" style="--accent-color:var(--indigo-400)"><span class="kpi-icon">🎓</span><span class="kpi-value" id="kpi-cohorts">—</span><span class="kpi-label">Angkatan</span></div>
+          <div class="kpi-card" style="--accent-color:var(--amber-400)"><span class="kpi-icon">🗺️</span><span class="kpi-value" id="kpi-provinces">—</span><span class="kpi-label">Provinsi</span></div>
+          <div class="kpi-card" style="--accent-color:var(--rose-400)"><span class="kpi-icon">📍</span><span class="kpi-value" id="kpi-regencies">—</span><span class="kpi-label">Kab / Kota</span></div>
+          <div class="kpi-card" style="--accent-color:var(--slate-200)"><span class="kpi-icon">🏫</span><span class="kpi-value" id="kpi-schools">—</span><span class="kpi-label">Sekolah Asal</span></div>
         </div>
 
-        <!-- Main Map + right sidebar -->
         <div class="dashboard-grid">
-
-          <!-- Peta Utama -->
           <div class="card">
             <div class="card-header">
               <span class="card-title">Peta Persebaran Mahasiswa</span>
               <div class="card-actions">
-                <button class="btn-icon active" data-map-mode="heatmap" title="Mode Heatmap">🔥 Heatmap</button>
-                <button class="btn-icon" data-map-mode="cluster" title="Mode Cluster">🔵 Cluster</button>
-                <button class="btn-icon" data-map-mode="point" title="Mode Point">📍 Point</button>
-                <button class="btn-icon" id="btn-reset-view" title="Reset tampilan peta">⟳</button>
+                <button class="map-mode-btn map-btn-active" data-map-mode="heatmap">🔥 Heatmap</button>
+                <button class="map-mode-btn" data-map-mode="cluster">🔵 Cluster</button>
+                <button class="map-mode-btn" data-map-mode="point">📍 Point</button>
+                <button class="map-mode-btn" id="btn-reset-view" onclick="MapService && MapService.resetView()">⟳</button>
               </div>
             </div>
-            <div class="map-wrap">
-              <div id="map" role="application" aria-label="Peta persebaran mahasiswa"></div>
-              <div id="map-empty-notice" aria-live="polite">
-                <span aria-hidden="true">🗺️</span>
-                <p>Tidak ada data untuk filter ini.</p>
+            <div class="map-wrap" style="position:relative;">
+              <div id="map" style="height:420px;"></div>
+              <div id="map-empty-notice" style="display:none;position:absolute;inset:0;background:rgba(2,8,23,.7);align-items:center;justify-content:center;flex-direction:column;gap:8px;z-index:1000;pointer-events:none;">
+                <span>🗺️</span><p style="color:#94a3b8;font-size:13px;">Tidak ada data untuk filter ini.</p>
               </div>
             </div>
           </div>
-
-          <!-- Kolom kanan: 2 chart kecil -->
           <div class="dashboard-grid-right">
             <div class="card">
-              <div class="card-header">
-                <span class="card-title">Mahasiswa per Angkatan</span>
-              </div>
-              <div class="chart-body">
-                <div id="chart-cohort" class="chart-canvas" style="height:160px"></div>
-              </div>
+              <div class="card-header"><span class="card-title">Mahasiswa per Angkatan</span></div>
+              <div class="chart-body"><div id="chart-cohort" style="width:100%;height:160px;"></div></div>
             </div>
-
             <div class="card">
-              <div class="card-header">
-                <span class="card-title">Mahasiswa per Provinsi</span>
-              </div>
-              <div class="chart-body">
-                <div id="chart-province" class="chart-canvas" style="height:200px"></div>
-              </div>
+              <div class="card-header"><span class="card-title">Mahasiswa per Provinsi</span></div>
+              <div class="chart-body"><div id="chart-province" style="width:100%;height:200px;"></div></div>
             </div>
           </div>
         </div>
 
-        <!-- Chart row bawah -->
         <div class="chart-grid">
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Top Kabupaten / Kota</span>
-            </div>
-            <div class="chart-body">
-              <div id="chart-regency" class="chart-canvas" style="height:200px"></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Distribusi Gender</span>
-            </div>
-            <div class="chart-body">
-              <div id="chart-gender" class="chart-canvas" style="height:200px"></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Jalur Masuk</span>
-            </div>
-            <div class="chart-body">
-              <div id="chart-admission" class="chart-canvas" style="height:200px"></div>
-            </div>
-          </div>
+          <div class="card"><div class="card-header"><span class="card-title">Top Kabupaten / Kota</span></div><div class="chart-body"><div id="chart-regency" style="width:100%;height:200px;"></div></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">Distribusi Gender</span></div><div class="chart-body"><div id="chart-gender" style="width:100%;height:200px;"></div></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">Jalur Masuk</span></div><div class="chart-body"><div id="chart-admission" style="width:100%;height:200px;"></div></div></div>
         </div>
 
-        <!-- Spatial Insight -->
         <div class="card insight-card">
-          <div class="card-header">
-            <span class="card-title">💡 Spatial Insights</span>
-          </div>
-          <div class="insight-body" id="insight-box" aria-live="polite">
-            <p class="insight-empty">Memuat insights…</p>
-          </div>
+          <div class="card-header"><span class="card-title">💡 Spatial Insights</span></div>
+          <div class="insight-body" id="insight-box"><p class="insight-empty">Memuat insights…</p></div>
         </div>
-
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════
-           PAGE 2 — SPATIAL DISTRIBUTION
-      ═══════════════════════════════════════════════════════ -->
-      <section id="page-spatial" class="page" aria-label="Spatial Distribution">
-        <div class="section-header">
-          <span class="section-title">Spatial Distribution</span>
-          <span class="section-desc">Analisis persebaran geografis mahasiswa</span>
-        </div>
-
-        <div class="card" style="margin-bottom:14px">
-          <div class="card-header">
-            <span class="card-title">Peta Interaktif — Persebaran Spasial</span>
-            <div class="card-actions">
-              <button class="btn-icon active" data-map-mode="heatmap">🔥 Heatmap</button>
-              <button class="btn-icon" data-map-mode="cluster">🔵 Cluster</button>
-              <button class="btn-icon" data-map-mode="point">📍 Point</button>
-              <button class="btn-icon" id="btn-reset-view2" onclick="MapService.resetView()">⟳ Reset</button>
-            </div>
-          </div>
-          <div class="map-wrap">
-            <p style="padding:16px;font-size:12px;color:var(--slate-400)">
-              ℹ️ Peta interaktif tersedia di halaman <b>Overview</b>. Gunakan tombol mode di atas untuk mengganti tampilan.
-              Klik marker untuk melihat detail mahasiswa.
-            </p>
-          </div>
-        </div>
-
+      <!-- PAGE: SPATIAL -->
+      <section id="page-spatial" class="page">
+        <div class="section-header"><span class="section-title">Spatial Distribution</span><span class="section-desc">Analisis persebaran geografis mahasiswa</span></div>
         <div class="chart-grid-2">
-          <div class="card">
-            <div class="card-header"><span class="card-title">Top Provinsi Asal</span></div>
-            <div class="chart-body">
-              <div id="chart-province-s" class="chart-canvas" style="height:240px"></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header"><span class="card-title">Top Kabupaten/Kota</span></div>
-            <div class="chart-body">
-              <div id="chart-regency-s" class="chart-canvas" style="height:240px"></div>
-            </div>
-          </div>
+          <div class="card"><div class="card-header"><span class="card-title">Top Provinsi Asal</span></div><div class="chart-body"><div id="chart-province-s" style="width:100%;height:240px;"></div></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">Top Kabupaten/Kota</span></div><div class="chart-body"><div id="chart-regency-s" style="width:100%;height:240px;"></div></div></div>
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════
-           PAGE 3 — STUDENT PROFILE
-      ═══════════════════════════════════════════════════════ -->
-      <section id="page-profile" class="page" aria-label="Student Profile">
-        <div class="section-header">
-          <span class="section-title">Student Profile</span>
-          <span class="section-desc">Demografi dan karakteristik mahasiswa</span>
-        </div>
-
+      <!-- PAGE: PROFILE -->
+      <section id="page-profile" class="page">
+        <div class="section-header"><span class="section-title">Student Profile</span><span class="section-desc">Demografi dan karakteristik mahasiswa</span></div>
         <div class="profile-grid">
-          <div class="card">
-            <div class="card-header"><span class="card-title">Distribusi Gender</span></div>
-            <div class="chart-body">
-              <div id="chart-gender-p" class="chart-canvas" style="height:220px"></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header"><span class="card-title">Jalur Masuk</span></div>
-            <div class="chart-body">
-              <div id="chart-admission-p" class="chart-canvas" style="height:220px"></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header"><span class="card-title">Status Mahasiswa</span></div>
-            <div class="chart-body">
-              <div id="chart-status-p" class="chart-canvas" style="height:220px"></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header"><span class="card-title">Top 10 Sekolah Asal</span></div>
-            <div class="chart-body">
-              <div id="chart-school-p" class="chart-canvas" style="height:220px"></div>
-            </div>
-          </div>
+          <div class="card"><div class="card-header"><span class="card-title">Distribusi Gender</span></div><div class="chart-body"><div id="chart-gender-p" style="width:100%;height:220px;"></div></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">Jalur Masuk</span></div><div class="chart-body"><div id="chart-admission-p" style="width:100%;height:220px;"></div></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">Status Mahasiswa</span></div><div class="chart-body"><div id="chart-status-p" style="width:100%;height:220px;"></div></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">Top 10 Sekolah Asal</span></div><div class="chart-body"><div id="chart-school-p" style="width:100%;height:220px;"></div></div></div>
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════
-           PAGE 4 — COHORT COMPARISON
-      ═══════════════════════════════════════════════════════ -->
-      <section id="page-cohort" class="page" aria-label="Cohort Comparison">
-        <div class="section-header">
-          <span class="section-title">Cohort Comparison</span>
-          <span class="section-desc">Perbandingan profil antarangkatan</span>
-        </div>
-
-        <div class="cohort-stats-grid" id="cohort-stats-grid" aria-label="Statistik per angkatan">
-          <!-- Diisi oleh JS -->
-        </div>
-
+      <!-- PAGE: COHORT -->
+      <section id="page-cohort" class="page">
+        <div class="section-header"><span class="section-title">Cohort Comparison</span><span class="section-desc">Perbandingan profil antarangkatan</span></div>
+        <div class="cohort-stats-grid" id="cohort-stats-grid"></div>
         <div class="chart-grid-2">
-          <div class="card">
-            <div class="card-header"><span class="card-title">Perbandingan Jumlah Mahasiswa</span></div>
-            <div class="chart-body">
-              <div id="chart-cohort-compare" class="chart-canvas" style="height:220px"></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header"><span class="card-title">Gender per Angkatan</span></div>
-            <div class="chart-body">
-              <div id="chart-cohort-gender" class="chart-canvas" style="height:220px"></div>
-            </div>
-          </div>
+          <div class="card"><div class="card-header"><span class="card-title">Perbandingan Jumlah Mahasiswa</span></div><div class="chart-body"><div id="chart-cohort-compare" style="width:100%;height:220px;"></div></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">Gender per Angkatan</span></div><div class="chart-body"><div id="chart-cohort-gender" style="width:100%;height:220px;"></div></div></div>
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════
-           PAGE 5 — ABOUT
-      ═══════════════════════════════════════════════════════ -->
-      <section id="page-about" class="page" aria-label="About">
-        <div class="section-header">
-          <span class="section-title">About</span>
-        </div>
-
+      <!-- PAGE: ABOUT -->
+      <section id="page-about" class="page">
+        <div class="section-header"><span class="section-title">About</span></div>
         <div class="about-grid">
-          <div class="card">
-            <div class="about-body">
-              <div class="about-title">PJ-SIG Student Spatial Dashboard</div>
-              <div class="about-sub">Spatial Intelligence for Student Profile, Academic Planning &amp; Decision Support</div>
-              <div class="about-badge">⚠️ DUMMY DATA — Bukan data mahasiswa nyata</div>
-
-              <div class="about-item">
-                <div class="about-item-label">Program Studi</div>
-                <div class="about-item-value">Penginderaan Jauh dan Sistem Informasi Geografis (D4 PJ-SIG)</div>
-              </div>
-              <div class="about-item">
-                <div class="about-item-label">Fakultas</div>
-                <div class="about-item-value">Fakultas Vokasi</div>
-              </div>
-              <div class="about-item">
-                <div class="about-item-label">Universitas</div>
-                <div class="about-item-value">Universitas Hasanuddin (UNHAS)</div>
-              </div>
-              <div class="about-item">
-                <div class="about-item-label">Tujuan</div>
-                <div class="about-item-value">Visualisasi dan analisis spasial profil mahasiswa untuk mendukung pengelolaan akademik, evaluasi persebaran, dan pengambilan keputusan berbasis data.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="about-body">
-              <div class="about-title" style="font-size:14px;margin-bottom:14px">Teknologi &amp; Sumber Data</div>
-
-              <div class="about-item">
-                <div class="about-item-label">Mapping</div>
-                <div class="about-item-value">Leaflet.js + OpenStreetMap (gratis, open-source)</div>
-              </div>
-              <div class="about-item">
-                <div class="about-item-label">Charts</div>
-                <div class="about-item-value">Apache ECharts (gratis, open-source)</div>
-              </div>
-              <div class="about-item">
-                <div class="about-item-label">Hosting</div>
-                <div class="about-item-value">GitHub Pages (gratis, HTTPS otomatis)</div>
-              </div>
-              <div class="about-item">
-                <div class="about-item-label">Data Spasial</div>
-                <div class="about-item-value">OpenStreetMap Contributors</div>
-              </div>
-              <div class="about-item">
-                <div class="about-item-label">Privasi</div>
-                <div class="about-item-value">Dashboard ini hanya menampilkan data agregat. ID individual, NIM, alamat, dan data pribadi tidak ditampilkan secara publik.</div>
-              </div>
-              <div class="about-item">
-                <div class="about-item-label">Status Data</div>
-                <div class="about-item-value" style="color:var(--amber-400)">⚠️ Seluruh data yang ditampilkan adalah DUMMY DATA untuk keperluan pengembangan. Tidak mewakili data mahasiswa nyata.</div>
-              </div>
-            </div>
-          </div>
+          <div class="card"><div class="about-body">
+            <div class="about-title">PJ-SIG Student Spatial Dashboard</div>
+            <div class="about-sub">Spatial Intelligence for Student Profile, Academic Planning &amp; Decision Support</div>
+            <div class="about-badge">⚠️ DUMMY DATA — Bukan data mahasiswa nyata</div>
+            <div class="about-item"><div class="about-item-label">Program Studi</div><div class="about-item-value">Penginderaan Jauh dan Sistem Informasi Geografis (D4 PJ-SIG)</div></div>
+            <div class="about-item"><div class="about-item-label">Fakultas</div><div class="about-item-value">Fakultas Vokasi</div></div>
+            <div class="about-item"><div class="about-item-label">Universitas</div><div class="about-item-value">Universitas Hasanuddin (UNHAS)</div></div>
+          </div></div>
+          <div class="card"><div class="about-body">
+            <div class="about-title" style="font-size:14px;margin-bottom:14px">Teknologi &amp; Sumber Data</div>
+            <div class="about-item"><div class="about-item-label">Mapping</div><div class="about-item-value">Leaflet.js + OpenStreetMap</div></div>
+            <div class="about-item"><div class="about-item-label">Charts</div><div class="about-item-value">Apache ECharts</div></div>
+            <div class="about-item"><div class="about-item-label">Hosting</div><div class="about-item-value">GitHub Pages</div></div>
+            <div class="about-item"><div class="about-item-label">Status Data</div><div class="about-item-value" style="color:var(--amber-400)">⚠️ DUMMY DATA untuk pengembangan.</div></div>
+          </div></div>
         </div>
       </section>
 
     </main>
-  </div><!-- /#main -->
-</div><!-- /#app -->
+  </div>
+</div>
 
-<!-- ── CDN Libraries (urutan penting) ───────────────────── -->
-
-<!-- Leaflet JS -->
+<!-- ═══════════════════════════════════════════════════════
+     CDN LIBRARIES — dimuat sebelum JS lokal
+═══════════════════════════════════════════════════════ -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- Leaflet.heat (heatmap plugin) -->
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-
-<!-- Leaflet MarkerCluster -->
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
-<!-- Apache ECharts -->
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
-<!-- App modules (urutan: data → filters → map → charts → app) -->
+<!-- ═══════════════════════════════════════════════════════
+     APP MODULES — urutan wajib dipertahankan
+═══════════════════════════════════════════════════════ -->
 <script src="./js/data.js"></script>
 <script src="./js/filters.js"></script>
 <script src="./js/map.js"></script>
