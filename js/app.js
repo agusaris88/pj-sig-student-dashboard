@@ -1,16 +1,8 @@
 /**
  * app.js — PJ-SIG Student Spatial Dashboard
- *
- * ARSITEKTUR SEDERHANA & ROBUST:
- * - Semua fungsi helper didefinisikan di atas, sebelum dipakai
- * - Loading PASTI disembunyikan di finally
- * - Setiap modul dicek sebelum dipanggil
- * - Tidak ada async/await tersembunyi di luar try/catch
+ * URUTAN KRITIS: appInitNav() HARUS sebelum appUpdate()
+ * supaya #page-overview sudah display:block saat peta dirender
  */
-
-/* ════════════════════════════════════════════════════════════
-   OVERLAY HELPERS — didefinisikan PERTAMA, sebelum apapun
-════════════════════════════════════════════════════════════ */
 
 function appShowLoading(show) {
   var el = document.getElementById('loading-overlay');
@@ -26,100 +18,83 @@ function appShowError(msg) {
   console.error('[APP] Error:', msg);
 }
 
-/* ════════════════════════════════════════════════════════════
-   ENTRY POINT — dipanggil setelah DOM siap
-════════════════════════════════════════════════════════════ */
-
 function appInit() {
   appShowLoading(true);
   console.log('[APP] Memulai inisialisasi...');
 
-  /* Cek semua modul tersedia */
   var missing = [];
-  if (typeof DataService   === 'undefined') missing.push('DataService (data.js)');
-  if (typeof FilterService === 'undefined') missing.push('FilterService (filters.js)');
-  if (typeof MapService    === 'undefined') missing.push('MapService (map.js)');
-  if (typeof ChartService  === 'undefined') missing.push('ChartService (charts.js)');
-  if (typeof L             === 'undefined') missing.push('Leaflet (CDN)');
-  if (typeof echarts       === 'undefined') missing.push('ECharts (CDN)');
+  if (typeof DataService   === 'undefined') missing.push('DataService');
+  if (typeof FilterService === 'undefined') missing.push('FilterService');
+  if (typeof MapService    === 'undefined') missing.push('MapService');
+  if (typeof ChartService  === 'undefined') missing.push('ChartService');
+  if (typeof L             === 'undefined') missing.push('Leaflet CDN');
+  if (typeof echarts       === 'undefined') missing.push('ECharts CDN');
 
   if (missing.length > 0) {
-    appShowError(
-      'Modul tidak ditemukan: ' + missing.join(', ') + '. ' +
-      'Kemungkinan koneksi internet lambat. Coba refresh halaman.'
-    );
+    appShowError('Modul tidak ditemukan: ' + missing.join(', ') +
+      '. Coba refresh halaman atau periksa koneksi internet.');
     return;
   }
-  console.log('[APP] Semua modul OK.');
 
-  /* Muat data lalu jalankan dashboard */
   DataService.load()
     .then(function(allData) {
       console.log('[APP] Data dimuat:', allData.length, 'records.');
 
-      /* Inisialisasi peta */
+      /* 1. Init peta */
       MapService.init('map');
 
-      /* Isi dropdown filter */
+      /* 2. Isi dropdown */
       appFillSelect('filter-cohort',    DataService.getUniqueValues('cohort').map(String));
       appFillSelect('filter-province',  DataService.getUniqueValues('province'));
       appFillSelect('filter-regency',   DataService.getUniqueValues('regency'));
       appFillSelect('filter-gender',    ['L', 'P']);
       appFillSelect('filter-admission', DataService.getUniqueValues('admission_path'));
 
-      /* Label gender */
       var gSel = document.getElementById('filter-gender');
       if (gSel) Array.from(gSel.options).forEach(function(o) {
         if (o.value === 'L') o.textContent = 'Laki-laki';
         if (o.value === 'P') o.textContent = 'Perempuan';
       });
 
-      /* Filter */
+      /* 3. Filter */
       FilterService.init(function() { appUpdate(); });
       FilterService.bindDOM();
 
-      /* Navigasi DULU — supaya #page-overview sudah display:block */
-      /* sebelum peta dan chart dirender (width=0 menyebabkan crash) */
+      /* 4. *** NAVIGASI DULU *** supaya #page-overview display:block */
       appInitSidebar();
       appInitNav();
 
-      /* Render pertama — setelah halaman overview sudah visible */
+      /* 5. Render SETELAH halaman sudah visible */
       appUpdate();
 
-      /* Reset peta */
+      /* 6. Event tambahan */
       var rb = document.getElementById('btn-reset-view');
       if (rb) rb.addEventListener('click', function() { MapService.resetView(); });
 
-      /* Resize */
       window.addEventListener('resize', function() {
         clearTimeout(window._resizeTimer);
         window._resizeTimer = setTimeout(function() { ChartService.resizeAll(); }, 250);
       });
 
-      /* Timestamp */
       var ts = document.getElementById('last-update');
       if (ts) ts.textContent = new Date().toLocaleDateString('id-ID', {
         day: 'numeric', month: 'long', year: 'numeric'
       });
 
-      console.log('[APP] Dashboard siap ✓');
+      console.log('[APP] Dashboard siap.');
     })
     .catch(function(err) {
       appShowError(err.message || String(err));
     })
     .finally(function() {
-      appShowLoading(false);  /* SELALU sembunyikan spinner */
+      appShowLoading(false);
     });
 }
 
-/* ════════════════════════════════════════════════════════════
-   UPDATE — dipanggil setiap kali filter berubah
-════════════════════════════════════════════════════════════ */
-
+/* ── Update ─────────────────────────────────────────────── */
 function appUpdate() {
   var all      = DataService.getAll();
   var filtered = FilterService.apply(all);
-
   appRenderKPI(filtered);
   MapService.render(filtered);
   ChartService.renderAll(filtered);
@@ -127,10 +102,7 @@ function appUpdate() {
   appRenderCohortStats(all);
 }
 
-/* ════════════════════════════════════════════════════════════
-   KPI
-════════════════════════════════════════════════════════════ */
-
+/* ── KPI ────────────────────────────────────────────────── */
 function appRenderKPI(data) {
   var s = DataService.getSummary(data);
   appSetKPI('kpi-total',     s.total);
@@ -140,16 +112,12 @@ function appRenderKPI(data) {
   appSetKPI('kpi-regencies', s.regencies);
   appSetKPI('kpi-schools',   s.schools);
 }
-
 function appSetKPI(id, val) {
   var el = document.getElementById(id);
   if (el) el.textContent = Number(val).toLocaleString('id-ID');
 }
 
-/* ════════════════════════════════════════════════════════════
-   INSIGHT
-════════════════════════════════════════════════════════════ */
-
+/* ── Insight ─────────────────────────────────────────────── */
 function appRenderInsight(data) {
   var box = document.getElementById('insight-box');
   if (!box) return;
@@ -162,18 +130,15 @@ function appRenderInsight(data) {
   if (tr) lines.push('📍 <b>' + tr.name + '</b> — kabupaten/kota terbanyak (' + tr.count + ' mahasiswa).');
   var m = data.filter(function(s){return s.gender==='L';}).length;
   var f = data.filter(function(s){return s.gender==='P';}).length;
-  lines.push('👥 Dominasi gender: <b>' + (m>=f?'Laki-laki ('+m+')':'Perempuan ('+f+')') + '</b> dari ' + data.length + ' mahasiswa.');
+  lines.push('👥 Dominasi: <b>' + (m>=f?'Laki-laki ('+m+')':'Perempuan ('+f+')') + '</b> dari ' + data.length + ' mahasiswa.');
   var tp = DataService.topN(data, 'province', 1)[0];
   if (tp) lines.push('🗺️ Provinsi terbanyak: <b>' + tp.name + '</b> (' + tp.count + ').');
   var ta = DataService.topN(data, 'admission_path', 1)[0];
-  if (ta) lines.push('🎓 Jalur masuk dominan: <b>' + ta.name + '</b> (' + ta.count + ').');
+  if (ta) lines.push('🎓 Jalur dominan: <b>' + ta.name + '</b> (' + ta.count + ').');
   box.innerHTML = lines.map(function(l){return '<p class="insight-item">'+l+'</p>';}).join('');
 }
 
-/* ════════════════════════════════════════════════════════════
-   COHORT STATS
-════════════════════════════════════════════════════════════ */
-
+/* ── Cohort Stats ────────────────────────────────────────── */
 function appRenderCohortStats(all) {
   var c = document.getElementById('cohort-stats-grid');
   if (!c) return;
@@ -188,15 +153,10 @@ function appRenderCohortStats(all) {
            '<div class="cohort-stat-num">'+sub.length+'</div>' +
            '<div class="cohort-stat-label">'+active+' aktif &middot; '+Object.keys(pset).length+' provinsi</div></div>';
   }).join('');
-
-  /* chart perbandingan cohort */
   ChartService.renderCohortCharts(all);
 }
 
-/* ════════════════════════════════════════════════════════════
-   DROPDOWN HELPER
-════════════════════════════════════════════════════════════ */
-
+/* ── Dropdown ────────────────────────────────────────────── */
 function appFillSelect(id, values) {
   var sel = document.getElementById(id);
   if (!sel) return;
@@ -208,26 +168,20 @@ function appFillSelect(id, values) {
   });
 }
 
-/* ════════════════════════════════════════════════════════════
-   SIDEBAR
-════════════════════════════════════════════════════════════ */
-
+/* ── Sidebar ─────────────────────────────────────────────── */
 function appInitSidebar() {
   var btn = document.getElementById('sidebar-toggle');
   var sb  = document.getElementById('sidebar');
   if (!btn || !sb) return;
   btn.addEventListener('click', function() {
-    var c = sb.classList.toggle('collapsed');
-    btn.textContent = c ? '▶' : '◀';
-    btn.setAttribute('aria-expanded', String(!c));
+    var collapsed = sb.classList.toggle('collapsed');
+    btn.textContent = collapsed ? '▶' : '◀';
+    btn.setAttribute('aria-expanded', String(!collapsed));
     setTimeout(function(){ ChartService.resizeAll(); }, 320);
   });
 }
 
-/* ════════════════════════════════════════════════════════════
-   NAVIGASI
-════════════════════════════════════════════════════════════ */
-
+/* ── Navigasi ────────────────────────────────────────────── */
 function appInitNav() {
   var links = document.querySelectorAll('[data-page]');
   var pages = document.querySelectorAll('.page');
@@ -235,7 +189,14 @@ function appInitNav() {
   function go(pid) {
     pages.forEach(function(p){ p.classList.toggle('active', p.id==='page-'+pid); });
     links.forEach(function(l){ l.classList.toggle('active', l.dataset.page===pid); });
-    setTimeout(function(){ ChartService.resizeAll(); }, 120);
+    setTimeout(function() {
+      ChartService.resizeAll();
+      var all      = DataService.getAll();
+      var filtered = FilterService.apply(all);
+      if (pid === 'spatial') ChartService.renderSpatialCharts(filtered);
+      if (pid === 'profile') ChartService.renderProfileCharts(filtered);
+      if (pid === 'cohort')  ChartService.renderCohortCharts(all);
+    }, 80);
     var ct = document.getElementById('content');
     if (ct) ct.scrollTo({top:0, behavior:'smooth'});
   }
@@ -250,10 +211,7 @@ function appInitNav() {
   go('overview');
 }
 
-/* ════════════════════════════════════════════════════════════
-   START — jalankan setelah DOM siap
-════════════════════════════════════════════════════════════ */
-
+/* ── Start ───────────────────────────────────────────────── */
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', appInit);
 } else {
