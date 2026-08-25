@@ -730,10 +730,30 @@ html, body {
 }
 
 /* ════════════════════════════════════════════════════════════
-   MAP ENHANCEMENT — tombol mode, legend, popup, markers
+   FILTER DINAMIS — badge hasil filter & filter status
 ════════════════════════════════════════════════════════════ */
 
-/* ── Tombol mode peta ────────────────────────────────────── */
+/* Badge jumlah hasil filter di filterbar */
+.filter-result-badge {
+  font-size: 11px;
+  color: var(--slate-400);
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--navy-900);
+  border: 1px solid var(--slate-500);
+  font-weight: 500;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+/* Saat filter aktif (tidak semua data ditampilkan) */
+.filter-result-badge.badge-filtered {
+  color: var(--teal-400);
+  border-color: var(--teal-500);
+  background: rgba(20, 184, 166, 0.08);
+}
+
+/* Tombol mode peta */
 .map-mode-btn {
   background: var(--navy-800);
   border: 1px solid var(--slate-500);
@@ -757,7 +777,7 @@ html, body {
   border-color: var(--teal-500);
 }
 
-/* ── Tombol reset view (custom Leaflet control) ───────────── */
+/* Reset view control */
 .map-ctrl-reset {
   display: block;
   background: var(--navy-800) !important;
@@ -778,7 +798,7 @@ html, body {
   border-color: var(--teal-500) !important;
 }
 
-/* ── Legend peta ─────────────────────────────────────────── */
+/* Legend peta */
 .map-legend {
   background: rgba(10, 22, 40, 0.92);
   border: 1px solid var(--slate-500);
@@ -826,18 +846,11 @@ html, body {
   color: var(--slate-400);
 }
 
-/* ── Marker point ────────────────────────────────────────── */
-.pt-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1.5px solid transparent;
-}
-
-/* ── Cluster icon ────────────────────────────────────────── */
+/* Marker point dan cluster */
+.pt-dot { width:12px; height:12px; border-radius:50%; border:1.5px solid transparent; }
 .cl-icon {
   border-radius: 50%;
-  color: #ffffff;
+  color: #fff;
   font-size: 12px;
   font-weight: 700;
   text-align: center;
@@ -846,61 +859,43 @@ html, body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
-/* ── Popup peta ──────────────────────────────────────────── */
-.pp-wrap { padding: 10px 12px; min-width: 210px; font-family: 'Inter', sans-serif; }
+/* Popup peta */
+.pp-wrap { padding:10px 12px; min-width:210px; font-family:'Inter',sans-serif; }
 .pp-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(51,65,85,0.5);
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid rgba(51,65,85,0.5);
 }
-.pp-cohort { font-size: 12px; font-weight: 700; color: var(--teal-400); }
-.pp-status { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-.st-aktif  { background: rgba(20,184,166,0.15); color: var(--teal-400); }
-.st-cuti   { background: rgba(251,191,36,0.15); color: var(--amber-400); }
-.st-lulus  { background: rgba(129,140,248,0.15); color: var(--indigo-400); }
-.pp-table  { width: 100%; border-collapse: collapse; font-size: 11px; }
-.pp-table td { padding: 3px 0; border-bottom: 1px solid rgba(51,65,85,0.3); vertical-align: top; }
-.pp-table tr:last-child td { border-bottom: none; }
-.pp-table td:first-child { color: var(--slate-400); width: 72px; padding-right: 8px; }
-.pp-table td:last-child  { color: var(--slate-100); border-bottom: none; }
+.pp-cohort { font-size:12px; font-weight:700; color:var(--teal-400); }
+.pp-status { font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; }
+.st-aktif  { background:rgba(20,184,166,0.15); color:var(--teal-400); }
+.st-cuti   { background:rgba(251,191,36,0.15); color:var(--amber-400); }
+.st-lulus  { background:rgba(129,140,248,0.15); color:var(--indigo-400); }
+.pp-table  { width:100%; border-collapse:collapse; font-size:11px; }
+.pp-table td { padding:3px 0; border-bottom:1px solid rgba(51,65,85,0.3); vertical-align:top; }
+.pp-table tr:last-child td { border-bottom:none; }
+.pp-table td:first-child { color:var(--slate-400); width:72px; padding-right:8px; }
+.pp-table td:last-child { color:var(--slate-100); }
 
-/* ── Leaflet dark theme overrides ────────────────────────── */
+/* Leaflet dark theme */
 .leaflet-popup-content-wrapper {
-  background: #0f2040 !important;
-  border: 1px solid var(--slate-500) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+  background:#0f2040 !important; border:1px solid var(--slate-500) !important;
+  border-radius:10px !important; box-shadow:0 8px 24px rgba(0,0,0,0.5) !important;
 }
-.leaflet-popup-tip   { background: #0f2040 !important; }
-.leaflet-popup-content { margin: 0 !important; }
+.leaflet-popup-tip   { background:#0f2040 !important; }
+.leaflet-popup-content { margin:0 !important; }
 .leaflet-tooltip {
-  background: rgba(10,22,40,0.92) !important;
-  border: 1px solid var(--slate-500) !important;
-  color: var(--slate-100) !important;
-  font-size: 11px !important;
-  font-family: 'Inter', sans-serif !important;
+  background:rgba(10,22,40,0.92) !important; border:1px solid var(--slate-500) !important;
+  color:var(--slate-100) !important; font-size:11px !important; font-family:'Inter',sans-serif !important;
 }
 .leaflet-control-zoom a {
-  background: var(--navy-800) !important;
-  color: var(--slate-100) !important;
-  border-color: var(--slate-500) !important;
+  background:var(--navy-800) !important; color:var(--slate-100) !important; border-color:var(--slate-500) !important;
 }
-.leaflet-control-zoom a:hover {
-  background: var(--navy-700) !important;
-  color: var(--teal-400) !important;
-}
+.leaflet-control-zoom a:hover { background:var(--navy-700) !important; color:var(--teal-400) !important; }
 .leaflet-control-scale-line {
-  border-color: var(--slate-400) !important;
-  color: var(--slate-300) !important;
-  background: rgba(10,22,40,0.8) !important;
-  font-size: 10px !important;
+  border-color:var(--slate-400) !important; color:var(--slate-300) !important;
+  background:rgba(10,22,40,0.8) !important; font-size:10px !important;
 }
 .leaflet-control-attribution {
-  background: rgba(2,8,23,0.8) !important;
-  color: var(--slate-400) !important;
-  font-size: 9px !important;
+  background:rgba(2,8,23,0.8) !important; color:var(--slate-400) !important; font-size:9px !important;
 }
-.leaflet-control-attribution a { color: var(--teal-400) !important; }
+.leaflet-control-attribution a { color:var(--teal-400) !important; }
