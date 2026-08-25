@@ -28,8 +28,12 @@ const ChartService = (() => {
   function _getInstance(id) {
     const el = document.getElementById(id);
     if (!el) return null;
+    // GUARD: jangan init jika container tidak visible (width=0 = belum tampil)
+    // Ini penyebab error 'getImageData: source width is 0'
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) return null;
     if (!_instances[id]) {
-      _instances[id] = echarts.init(el, null, { renderer: 'svg' });
+      // Gunakan 'canvas' renderer - lebih stabil dari 'svg' untuk semua browser
+      _instances[id] = echarts.init(el, null, { renderer: 'canvas' });
     }
     return _instances[id];
   }
@@ -238,7 +242,12 @@ const ChartService = (() => {
 
   /** Panggil resize semua chart (saat sidebar toggle atau resize window) */
   function resizeAll() {
-    Object.values(_instances).forEach(c => c.resize());
+    Object.keys(_instances).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+        try { _instances[id].resize(); } catch(e) {}
+      }
+    });
   }
 
   function _truncate(str, n) {
