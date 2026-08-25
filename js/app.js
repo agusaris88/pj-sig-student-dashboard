@@ -117,15 +117,20 @@ function appInit() {
    UPDATE — dipanggil setiap kali filter berubah
 ════════════════════════════════════════════════════════════ */
 
-function appUpdate() {
-  var all      = DataService.getAll();
-  var filtered = FilterService.apply(all);
+// Simpan data terakhir untuk re-render saat pindah halaman
+var _lastFiltered = [];
+var _lastAll = [];
 
-  appRenderKPI(filtered);
-  MapService.render(filtered);
-  ChartService.renderAll(filtered);
-  appRenderInsight(filtered);
-  appRenderCohortStats(all);
+function appUpdate() {
+  _lastAll      = DataService.getAll();
+  _lastFiltered = FilterService.apply(_lastAll);
+
+  appRenderKPI(_lastFiltered);
+  MapService.render(_lastFiltered);
+  // Render hanya chart yang VISIBLE (halaman Overview aktif)
+  ChartService.renderAll(_lastFiltered);
+  appRenderInsight(_lastFiltered);
+  appRenderCohortStats(_lastAll);
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -190,8 +195,8 @@ function appRenderCohortStats(all) {
            '<div class="cohort-stat-label">'+active+' aktif &middot; '+Object.keys(pset).length+' provinsi</div></div>';
   }).join('');
 
-  /* chart perbandingan cohort */
-  ChartService.renderCohortCharts(all);
+  // Chart cohort dirender saat user navigasi ke halaman Cohort
+  // (lihat appInitNav) — tidak dirender di sini agar tidak error width=0
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -236,7 +241,22 @@ function appInitNav() {
   function go(pid) {
     pages.forEach(function(p){ p.classList.toggle('active', p.id==='page-'+pid); });
     links.forEach(function(l){ l.classList.toggle('active', l.dataset.page===pid); });
-    setTimeout(function(){ ChartService.resizeAll(); }, 120);
+
+    // Render chart halaman yang baru aktif (container sudah visible sekarang)
+    setTimeout(function() {
+      ChartService.resizeAll();
+      if (pid === 'spatial' && _lastFiltered.length) {
+        ChartService.renderSpatialCharts(_lastFiltered);
+      }
+      if (pid === 'profile' && _lastFiltered.length) {
+        ChartService.renderProfileCharts(_lastFiltered);
+      }
+      if (pid === 'cohort' && _lastAll.length) {
+        ChartService.renderCohortCharts(_lastAll);
+        appRenderCohortStats(_lastAll);
+      }
+    }, 80); // tunggu CSS transition selesai dulu
+
     var ct = document.getElementById('content');
     if (ct) ct.scrollTo({top:0, behavior:'smooth'});
   }
