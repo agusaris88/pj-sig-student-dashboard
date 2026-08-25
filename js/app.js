@@ -1,221 +1,296 @@
 /**
- * app.js
+ * app.js — PJ-SIG Student Spatial Dashboard
  * Koordinator utama. Inisialisasi semua modul dan orkestrasi aliran data.
- * Dipanggil saat DOM selesai dimuat.
  */
 
-(async () => {
-  // ── 1. Tampilkan loading ──────────────────────────────────────────────────
-  showLoading(true);
+(async function() {
+
+  /* ── 1. Tampilkan loading, sembunyikan error ──────────────── */
+  _showOverlay('loading-overlay', true);
+  _showOverlay('error-overlay',   false);
 
   try {
-    // ── 2. Muat data ─────────────────────────────────────────────────────────
-    const allData = await DataService.load();
 
-    // ── 3. Inisialisasi peta ─────────────────────────────────────────────────
+    /* ── 2. Muat data ─────────────────────────────────────────
+       DataService.load() melakukan fetch, validasi, normalisasi,
+       dan logging. Jika gagal, ia throw Error dengan pesan yang jelas. */
+    var allData = await DataService.load();
+
+    /* ── 3. Inisialisasi peta ─────────────────────────────────
+       MapService.init() aman dipanggil berulang (idempotent). */
     MapService.init('map');
 
-    // ── 4. Isi dropdown filter dari data ─────────────────────────────────────
-    FilterService.populateSelect(
-      document.getElementById('filter-cohort'),
-      DataService.getUniqueValues('cohort').map(String)
-    );
-    FilterService.populateSelect(
-      document.getElementById('filter-province'),
-      DataService.getUniqueValues('province')
-    );
-    FilterService.populateSelect(
-      document.getElementById('filter-regency'),
-      DataService.getUniqueValues('regency')
-    );
-    FilterService.populateSelect(
-      document.getElementById('filter-gender'),
-      [{ val: 'L', label: 'Laki-laki' }, { val: 'P', label: 'Perempuan' }]
-        .map(g => g.val),  // FilterService.populateSelect menerima array string
-    );
-    // Override label gender agar lebih jelas
+    /* ── 4. Isi dropdown filter dari nilai unik di data ────── */
+    _populateFilter('filter-cohort',   DataService.getUniqueValues('cohort').map(String));
+    _populateFilter('filter-province', DataService.getUniqueValues('province'));
+    _populateFilter('filter-regency',  DataService.getUniqueValues('regency'));
+    _populateFilter('filter-gender',   ['L', 'P']);
+    _populateFilter('filter-admission', DataService.getUniqueValues('admission_path'));
+
+    /* Override label gender agar human-readable */
     _fixGenderLabels();
 
-    FilterService.populateSelect(
-      document.getElementById('filter-admission'),
-      DataService.getUniqueValues('admission_path')
-    );
-
-    // ── 5. Inisialisasi filter — pasang callback ───────────────────────────
-    FilterService.init(() => _update());
+    /* ── 5. Filter service: pasang callback, bind elemen DOM ─ */
+    FilterService.init(function() { _update(); });
     FilterService.bindDOM();
 
-    // ── 6. Render pertama dengan seluruh data ─────────────────────────────
+    /* ── 6. Render pertama ────────────────────────────────────*/
     _update();
 
-    // ── 7. Listen event map-mode-changed dari tombol mode peta ────────────
-    document.addEventListener('map-mode-changed', () => _update());
+    /* ── 7. Event mode peta ─────────────────────────────────── */
+    document.addEventListener('map-mode-changed', function() { _update(); });
 
-    // ── 8. Sidebar toggle ─────────────────────────────────────────────────
+    /* ── 8. Sidebar toggle ─────────────────────────────────── */
     _initSidebar();
 
-    // ── 9. Navigasi halaman (single-page behavior) ────────────────────────
+    /* ── 9. Navigasi halaman ─────────────────────────────────  */
     _initNavigation();
 
-    // ── 10. Tombol reset view peta ────────────────────────────────────────
-    const resetViewBtn = document.getElementById('btn-reset-view');
-    if (resetViewBtn) resetViewBtn.addEventListener('click', () => MapService.resetView());
+    /* ── 10. Tombol reset view peta ──────────────────────────  */
+    var resetBtn = document.getElementById('btn-reset-view');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function() { MapService.resetView(); });
+    }
 
-    // ── 11. Resize chart saat window resize ──────────────────────────────
-    window.addEventListener('resize', debounce(() => ChartService.resizeAll(), 200));
+    /* ── 11. Resize chart saat window resize ─────────────────  */
+    window.addEventListener('resize', _debounce(function() {
+      ChartService.resizeAll();
+    }, 200));
 
-    // ── 12. Update timestamp ──────────────────────────────────────────────
-    const tsEl = document.getElementById('last-update');
-    if (tsEl) tsEl.textContent = new Date().toLocaleDateString('id-ID', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    });
+    /* ── 12. Timestamp last update ───────────────────────────  */
+    var tsEl = document.getElementById('last-update');
+    if (tsEl) {
+      tsEl.textContent = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+    }
 
   } catch (err) {
-    showError(err);
+    /* Tangkap error apapun dan tampilkan ke user + console */
+    console.error('app.js: inisialisasi gagal -', err);
+    _showError(err.message || 'Terjadi kesalahan yang tidak diketahui.');
   } finally {
-    showLoading(false);
+    /* Selalu sembunyikan loading, apapun hasilnya */
+    _showOverlay('loading-overlay', false);
   }
 
-  // ── Fungsi ─────────────────────────────────────────────────────────────────
+  /* ══════════════════════════════════════════════════════════
+     FUNGSI INTI
+  ══════════════════════════════════════════════════════════ */
 
-  /** Ambil data terfilter, update KPI + peta + chart */
+  /** Ambil data terfilter → update semua komponen visual */
   function _update() {
-    const allData  = DataService.getAll();
-    const filtered = FilterService.apply(allData);
+    var all      = DataService.getAll();
+    var filtered = FilterService.apply(all);
+
     _renderKPI(filtered);
     MapService.render(filtered);
     ChartService.renderAll(filtered);
     ChartService.renderProfileCharts(filtered);
     ChartService.renderSpatialCharts(filtered);
-    ChartService.renderCohortCharts(allData);  // cohort selalu pakai semua data
+    ChartService.renderCohortCharts(all);   // cohort: selalu pakai semua data
     _renderInsight(filtered);
-    _renderCohortStats(allData);
+    _renderCohortStats(all);
   }
 
-  /** Update 6 KPI card */
+  /** Update enam KPI card */
   function _renderKPI(data) {
-    const summary = DataService.getSummary(data);
-    _setKPI('kpi-total',     summary.total);
-    _setKPI('kpi-active',    summary.active);
-    _setKPI('kpi-cohorts',   summary.cohorts.length);
-    _setKPI('kpi-provinces', summary.provinces);
-    _setKPI('kpi-regencies', summary.regencies);
-    _setKPI('kpi-schools',   summary.schools);
+    var s = DataService.getSummary(data);
+    _setKPI('kpi-total',     s.total);
+    _setKPI('kpi-active',    s.active);
+    _setKPI('kpi-cohorts',   s.cohorts.length);
+    _setKPI('kpi-provinces', s.provinces);
+    _setKPI('kpi-regencies', s.regencies);
+    _setKPI('kpi-schools',   s.schools);
   }
 
   function _setKPI(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value.toLocaleString('id-ID');
+    var el = document.getElementById(id);
+    if (el) el.textContent = Number(value).toLocaleString('id-ID');
   }
 
-  /** Auto-insight berdasarkan data yang difilter */
+  /** Auto-insight teks berdasarkan data terfilter */
   function _renderInsight(data) {
-    const box = document.getElementById('insight-box');
+    var box = document.getElementById('insight-box');
     if (!box) return;
-    if (data.length === 0) {
+
+    if (!data || data.length === 0) {
       box.innerHTML = '<p class="insight-empty">Tidak ada data untuk filter yang dipilih.</p>';
       return;
     }
-    const insights = [];
-    const top = DataService.topN(data, 'regency', 1)[0];
-    if (top) insights.push(`📍 <b>${top.name}</b> merupakan asal kabupaten/kota terbanyak dengan <b>${top.count}</b> mahasiswa.`);
 
-    const male   = data.filter(s => s.gender === 'L').length;
-    const female = data.filter(s => s.gender === 'P').length;
-    const domGender = male >= female ? `laki-laki (${male})` : `perempuan (${female})`;
-    insights.push(`👥 Mahasiswa didominasi oleh <b>${domGender}</b> dari total <b>${data.length}</b>.`);
+    var insights = [];
 
-    const topProv = DataService.topN(data, 'province', 1)[0];
-    if (topProv) insights.push(`🗺️ <b>${topProv.name}</b> adalah provinsi dengan kontribusi mahasiswa terbesar.`);
+    var topReg = DataService.topN(data, 'regency', 1)[0];
+    if (topReg) {
+      insights.push(
+        '\uD83D\uDCCD <b>' + topReg.name + '</b> merupakan kabupaten/kota asal terbanyak ' +
+        'dengan <b>' + topReg.count + '</b> mahasiswa.'
+      );
+    }
 
-    const topPath = DataService.topN(data, 'admission_path', 1)[0];
-    if (topPath) insights.push(`🎓 Jalur masuk terbanyak: <b>${topPath.name}</b> (<b>${topPath.count}</b> mahasiswa).`);
+    var male   = data.filter(function(s) { return s.gender === 'L'; }).length;
+    var female = data.filter(function(s) { return s.gender === 'P'; }).length;
+    var domGender = male >= female
+      ? 'laki-laki (' + male + ')'
+      : 'perempuan (' + female + ')';
+    insights.push(
+      '\uD83D\uDC65 Mahasiswa didominasi <b>' + domGender + '</b> dari total <b>' + data.length + '</b>.'
+    );
 
-    box.innerHTML = insights.map(i => `<p class="insight-item">${i}</p>`).join('');
+    var topProv = DataService.topN(data, 'province', 1)[0];
+    if (topProv) {
+      insights.push(
+        '\uD83D\uDDFA\uFE0F <b>' + topProv.name + '</b> adalah provinsi dengan kontribusi terbesar.'
+      );
+    }
+
+    var topPath = DataService.topN(data, 'admission_path', 1)[0];
+    if (topPath) {
+      insights.push(
+        '\uD83C\uDF93 Jalur masuk terbanyak: <b>' + topPath.name +
+        '</b> (' + topPath.count + ' mahasiswa).'
+      );
+    }
+
+    box.innerHTML = insights
+      .map(function(i) { return '<p class="insight-item">' + i + '</p>'; })
+      .join('');
+  }
+
+  /** Render kartu statistik per angkatan di halaman Cohort */
+  function _renderCohortStats(allData) {
+    var container = document.getElementById('cohort-stats-grid');
+    if (!container) return;
+
+    var cohorts = DataService.getUniqueValues('cohort');  // sudah di-sort
+    var colors  = ['var(--sky-500)', 'var(--teal-500)', 'var(--indigo-400)', 'var(--amber-400)'];
+
+    container.innerHTML = cohorts.map(function(c, i) {
+      var cData  = allData.filter(function(s) { return s.cohort === c; });
+      var active = cData.filter(function(s)  { return s.status === 'Aktif'; }).length;
+      var provs  = DataService.getUniqueValues.call(null, 'province',
+                   // fallback: hitung dari subset
+                   (function() {
+                     var seen = {}, out = [];
+                     cData.forEach(function(s) {
+                       if (!seen[s.province]) { seen[s.province] = true; out.push(s.province); }
+                     });
+                     return out.length;
+                   })()
+                   );
+      // Hitung provinsi dari subset cohort langsung
+      var provCount = (function() {
+        var seen = {};
+        cData.forEach(function(s) { seen[s.province] = true; });
+        return Object.keys(seen).length;
+      })();
+
+      return '<div class="cohort-stat-card" style="--accent:' + colors[i % colors.length] + '">' +
+        '<div class="cohort-stat-year">Angkatan ' + c + '</div>' +
+        '<div class="cohort-stat-num">' + cData.length + '</div>' +
+        '<div class="cohort-stat-label">' + active + ' aktif &middot; ' + provCount + ' provinsi</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     HELPER UI
+  ══════════════════════════════════════════════════════════ */
+
+  /** Isi dropdown dari array string, pertahankan opsi "Semua" pertama */
+  function _populateFilter(selectId, values) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+
+    // Hapus semua opsi kecuali yang pertama (Semua …)
+    while (sel.options.length > 1) sel.remove(1);
+
+    values.forEach(function(v) {
+      var opt = document.createElement('option');
+      opt.value       = String(v);
+      opt.textContent = String(v);
+      sel.appendChild(opt);
+    });
   }
 
   function _fixGenderLabels() {
-    const sel = document.getElementById('filter-gender');
+    var sel = document.getElementById('filter-gender');
     if (!sel) return;
-    [...sel.options].forEach(opt => {
+    Array.from(sel.options).forEach(function(opt) {
       if (opt.value === 'L') opt.textContent = 'Laki-laki';
       if (opt.value === 'P') opt.textContent = 'Perempuan';
     });
   }
 
+  /** Toggle sidebar collapse */
   function _initSidebar() {
-    const toggleBtn = document.getElementById('sidebar-toggle');
-    const sidebar   = document.getElementById('sidebar');
-    const main      = document.getElementById('main');
-    if (!toggleBtn || !sidebar || !main) return;
+    var btn     = document.getElementById('sidebar-toggle');
+    var sidebar = document.getElementById('sidebar');
+    var main    = document.getElementById('main');
+    if (!btn || !sidebar || !main) return;
 
-    toggleBtn.addEventListener('click', () => {
-      const collapsed = sidebar.classList.toggle('collapsed');
+    btn.addEventListener('click', function() {
+      var collapsed = sidebar.classList.toggle('collapsed');
       main.classList.toggle('sidebar-collapsed', collapsed);
-      toggleBtn.setAttribute('aria-expanded', String(!collapsed));
-      setTimeout(() => ChartService.resizeAll(), 320);
+      btn.setAttribute('aria-expanded', String(!collapsed));
+      btn.textContent = collapsed ? '\u25B6' : '\u25C0';  // ► / ◀
+      setTimeout(function() { ChartService.resizeAll(); }, 320);
     });
   }
 
+  /** Navigasi halaman (single-page) */
   function _initNavigation() {
-    const navLinks = document.querySelectorAll('[data-page]');
-    const pages    = document.querySelectorAll('.page');
+    var navLinks = document.querySelectorAll('[data-page]');
+    var pages    = document.querySelectorAll('.page');
 
     function showPage(pageId) {
-      pages.forEach(p => p.classList.toggle('active', p.id === `page-${pageId}`));
-      navLinks.forEach(l => l.classList.toggle('active', l.dataset.page === pageId));
-      setTimeout(() => ChartService.resizeAll(), 120);
-      document.getElementById('content').scrollTo({ top: 0, behavior: 'smooth' });
+      pages.forEach(function(p) {
+        p.classList.toggle('active', p.id === 'page-' + pageId);
+      });
+      navLinks.forEach(function(l) {
+        l.classList.toggle('active', l.dataset.page === pageId);
+      });
+      setTimeout(function() { ChartService.resizeAll(); }, 120);
+      var content = document.getElementById('content');
+      if (content) content.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    navLinks.forEach(link => {
-      link.addEventListener('click', e => {
+    navLinks.forEach(function(link) {
+      link.addEventListener('click', function(e) {
         e.preventDefault();
         showPage(link.dataset.page);
       });
     });
 
-    showPage('overview'); // default
+    showPage('overview');  // halaman default
   }
 
-  /** Render kartu statistik per angkatan di halaman Cohort */
-  function _renderCohortStats(allData) {
-    const container = document.getElementById('cohort-stats-grid');
-    if (!container) return;
-    const cohorts = [...new Set(allData.map(s => s.cohort))].sort();
-    const colors  = ['var(--sky-500)', 'var(--teal-500)', 'var(--indigo-400)', 'var(--amber-400)'];
-    container.innerHTML = cohorts.map((c, i) => {
-      const cData  = allData.filter(s => s.cohort === c);
-      const active = cData.filter(s => s.status === 'Aktif').length;
-      const provs  = new Set(cData.map(s => s.province)).size;
-      return `
-        <div class="cohort-stat-card" style="--accent:${colors[i % colors.length]}">
-          <div class="cohort-stat-year">Angkatan ${c}</div>
-          <div class="cohort-stat-num">${cData.length}</div>
-          <div class="cohort-stat-label">mahasiswa · ${active} aktif · ${provs} provinsi</div>
-        </div>`;
-    }).join('');
+  /* ══════════════════════════════════════════════════════════
+     OVERLAY HELPERS
+  ══════════════════════════════════════════════════════════ */
+
+  function _showOverlay(id, show) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = show ? 'flex' : 'none';
   }
+
+  function _showError(message) {
+    _showOverlay('loading-overlay', false);
+    _showOverlay('error-overlay', true);
+    var msgEl = document.getElementById('error-message');
+    if (msgEl) msgEl.textContent = message || 'Terjadi kesalahan yang tidak diketahui.';
+    console.error('app.js [error ditampilkan ke user]:', message);
+  }
+
+  function _debounce(fn, ms) {
+    var timer;
+    return function() {
+      clearTimeout(timer);
+      timer = setTimeout(fn, ms);
+    };
+  }
+
 })();
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function showLoading(show) {
-  const el = document.getElementById('loading-overlay');
-  if (el) el.style.display = show ? 'flex' : 'none';
-}
-
-function showError(err) {
-  const el = document.getElementById('error-overlay');
-  if (el) {
-    el.style.display = 'flex';
-    const msg = el.querySelector('#error-message');
-    if (msg) msg.textContent = err?.message || 'Gagal memuat data.';
-  }
-  console.error(err);
-}
-
-function debounce(fn, ms) {
-  let timer;
-  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
-}
+fix: perbaiki error handling dan overlay management
