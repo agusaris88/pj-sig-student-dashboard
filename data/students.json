@@ -1571,5 +1571,18 @@
     "status": "Aktif",
     "latitude": -5.420343,
     "longitude": 119.374569
+  },
+  {
+    "student_id": "D4PJ2026010",
+    "cohort": 2027,
+    "gender": "L",
+    "province": "Sulawesi Selatan",
+    "regency": "Takalar",
+    "district": "Pattallassang",
+    "school": "SMAN 1 Takalar",
+    "admission_path": "SNBT",
+    "status": "Aktif",
+    "latitude": -5.420343,
+    "longitude": 119.374599
   }
 ]
