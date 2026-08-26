@@ -1546,6 +1546,19 @@
     "latitude": -4.566523,
     "longitude": 120.34844
   },
+   {
+    "student_id": "D4PJ2026033",
+    "cohort": 2027,
+    "gender": "P",
+    "province": "Sulawesi Selatan",
+    "regency": "Bone",
+    "district": "Tanete Riattang",
+    "school": "SMAN 1 Bone",
+    "admission_path": "Mandiri",
+    "status": "Aktif",
+    "latitude": -4.566523,
+    "longitude": 120.34744
+  },
   {
     "student_id": "D4PJ2026014",
     "cohort": 2026,
