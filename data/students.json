@@ -1,11 +1,11 @@
 [
   {
-    "student_id": "D4PJ2026015",
-    "cohort": 2026,
+    "student_id": "D4PJ2024001",
+    "cohort": 2024,
     "gender": "L",
     "province": "Sulawesi Selatan",
-    "regency": "Barru",
-    "district": "Barru",
+    "regency": "Luwu Timur",
+    "district": "Luwu",
     "school": "SMKN 3 Barru",
     "admission_path": "SNBT",
     "status": "Cuti",
@@ -1584,18 +1584,5 @@
     "status": "Aktif",
     "latitude": -5.420343,
     "longitude": 119.374599
-  },
-  {
-    "student_id": "D4PJ2027001",
-    "cohort": 2027,
-    "gender": "L",
-    "province": "Jawa Barat",
-    "regency": "Bogor",
-    "district": "Tajur",
-    "school": "SMAN 1 Bogor",
-    "admission_path": "SNBT",
-    "status": "Aktif",
-    "latitude": -6.633969,
-    "longitude": 106.822447
   }
 ]
