@@ -8,11 +8,11 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --navy-950:  #020817;
-  --navy-900:  #0a1628;
-  --navy-800:  #0f2040;
-  --navy-700:  #152b52;
-  --navy-600:  #1e3a6b;
+  --navy-950:  #F8FAFC;
+  --navy-900:  #FFFFFF;
+  --navy-800:  #FFFFFF;
+  --navy-700:  #FFFFFF;
+  --navy-600:  #FFFFFF;
   --slate-500: #334155;
   --slate-400: #475569;
   --slate-300: #64748b;
